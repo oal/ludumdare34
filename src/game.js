@@ -1,7 +1,8 @@
 'use strict';
 
-import {Scene, PerspectiveCamera, WebGLRenderer, Clock, Fog} from 'three';
+import {Scene, WebGLRenderer, Clock, Fog, DirectionalLight, AmbientLight} from 'three';
 import {Level} from './level';
+import {Player} from './player';
 
 class Game {
 	constructor() {
@@ -12,15 +13,12 @@ class Game {
 
 	setUp() {
 		this.scene = new Scene();
+		this.setUpLights();
 
 		var skyColor = 0xC4FCFF;
 		var fog = new Fog(skyColor, 10, 100);
 		this.scene.fog = fog;
 
-		this.camera = new PerspectiveCamera(120, window.innerWidth / window.innerHeight, 0.1, 1000);
-		this.camera.position.setY(10);
-		this.camera.position.setZ(10);
-		this.camera.rotation.set(-Math.PI/6, 0, 0);
 
 		this.renderer = new WebGLRenderer();
 		this.renderer.setClearColor(skyColor);
@@ -32,7 +30,37 @@ class Game {
 		this.level = new Level();
 		this.scene.add(this.level);
 
+		this.player = new Player(this.level);
+
+		this.scene.add(this.player);
+
 		this.skipFrame = true;
+
+		this.setUpControls();
+	}
+
+	setUpLights() {
+		var ambientLight = new AmbientLight(0x999999);
+		this.scene.add(ambientLight);
+
+		var directionalLight = new DirectionalLight(0xffffff, 0.5);
+		directionalLight.position.set(0, 1, 0);
+		this.scene.add(directionalLight);
+	}
+
+	setUpControls() {
+		this.keysPressed = [];
+		document.addEventListener('keydown', (e) => {
+			e.preventDefault();
+			if (this.keysPressed.indexOf(e.keyCode) != -1) return;
+			this.keysPressed.push(e.keyCode);
+		});
+		document.addEventListener('keyup', (e) => {
+			e.preventDefault();
+			var keyIndex = this.keysPressed.indexOf(e.keyCode);
+			if (keyIndex == -1) return;
+			this.keysPressed.splice(keyIndex, 1);
+		});
 	}
 
 	start() {
@@ -43,24 +71,25 @@ class Game {
 		if (this.isPaused) {
 			this.clock.start();
 			this.isPaused = false;
-			this.render();
+			this.update();
 		} else {
 			this.isPaused = true;
 			this.clock.stop();
 		}
 	}
 
-	render() {
+	update() {
 		if (this.isPaused) return;
 
-		//this.skipFrame = !this.skipFrame;
-		//if(this.skipFrame) return;
+		var dt = this.clock.getDelta();
+		this.level.update(dt);
+		this.player.update(dt, this.keysPressed);
+		this.render();
+		requestAnimationFrame(this.update.bind(this));
+	}
 
-		this.dt = this.clock.getDelta();
-
-		this.level.position.setZ(this.level.position.z+this.dt*10);
-		this.renderer.render(this.scene, this.camera);
-		requestAnimationFrame(this.render.bind(this));
+	render() {
+		this.renderer.render(this.scene, this.player.camera);
 	}
 }
 

@@ -52,6 +52,8 @@
 
 	var _level = __webpack_require__(2);
 
+	var _player = __webpack_require__(4);
+
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 	var Game = (function () {
@@ -67,15 +69,11 @@
 			key: 'setUp',
 			value: function setUp() {
 				this.scene = new _three.Scene();
+				this.setUpLights();
 
 				var skyColor = 0xC4FCFF;
 				var fog = new _three.Fog(skyColor, 10, 100);
 				this.scene.fog = fog;
-
-				this.camera = new _three.PerspectiveCamera(120, window.innerWidth / window.innerHeight, 0.1, 1000);
-				this.camera.position.setY(10);
-				this.camera.position.setZ(10);
-				this.camera.rotation.set(-Math.PI / 6, 0, 0);
 
 				this.renderer = new _three.WebGLRenderer();
 				this.renderer.setClearColor(skyColor);
@@ -87,7 +85,41 @@
 				this.level = new _level.Level();
 				this.scene.add(this.level);
 
+				this.player = new _player.Player(this.level);
+
+				this.scene.add(this.player);
+
 				this.skipFrame = true;
+
+				this.setUpControls();
+			}
+		}, {
+			key: 'setUpLights',
+			value: function setUpLights() {
+				var ambientLight = new _three.AmbientLight(0x999999);
+				this.scene.add(ambientLight);
+
+				var directionalLight = new _three.DirectionalLight(0xffffff, 0.5);
+				directionalLight.position.set(0, 1, 0);
+				this.scene.add(directionalLight);
+			}
+		}, {
+			key: 'setUpControls',
+			value: function setUpControls() {
+				var _this = this;
+
+				this.keysPressed = [];
+				document.addEventListener('keydown', function (e) {
+					e.preventDefault();
+					if (_this.keysPressed.indexOf(e.keyCode) != -1) return;
+					_this.keysPressed.push(e.keyCode);
+				});
+				document.addEventListener('keyup', function (e) {
+					e.preventDefault();
+					var keyIndex = _this.keysPressed.indexOf(e.keyCode);
+					if (keyIndex == -1) return;
+					_this.keysPressed.splice(keyIndex, 1);
+				});
 			}
 		}, {
 			key: 'start',
@@ -100,25 +132,27 @@
 				if (this.isPaused) {
 					this.clock.start();
 					this.isPaused = false;
-					this.render();
+					this.update();
 				} else {
 					this.isPaused = true;
 					this.clock.stop();
 				}
 			}
 		}, {
-			key: 'render',
-			value: function render() {
+			key: 'update',
+			value: function update() {
 				if (this.isPaused) return;
 
-				//this.skipFrame = !this.skipFrame;
-				//if(this.skipFrame) return;
-
-				this.dt = this.clock.getDelta();
-
-				this.level.position.setZ(this.level.position.z + this.dt * 10);
-				this.renderer.render(this.scene, this.camera);
-				requestAnimationFrame(this.render.bind(this));
+				var dt = this.clock.getDelta();
+				this.level.update(dt);
+				this.player.update(dt, this.keysPressed);
+				this.render();
+				requestAnimationFrame(this.update.bind(this));
+			}
+		}, {
+			key: 'render',
+			value: function render() {
+				this.renderer.render(this.scene, this.player.camera);
 			}
 		}]);
 
@@ -2579,57 +2613,72 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	var Level = exports.Level = (function (_Mesh) {
-		_inherits(Level, _Mesh);
+	var Level = exports.Level = (function (_Object3D) {
+		_inherits(Level, _Object3D);
 
 		function Level() {
 			_classCallCheck(this, Level);
 
-			var material = new _three.MeshBasicMaterial({
-				color: 0xD61C1C
-			});
-
-			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Level).call(this, new _three.Geometry(), material));
+			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Level).call(this));
 
 			_this.random = new _random.Random(Math.random());
 
 			_this.buildData();
-			_this.geometry = _this.buildGeometry();
+
+			var outline = _this.buildOutline();
+			_this.add(outline);
+
+			var plane = _this.buildPlane();
+			_this.add(plane);
 
 			_this.rotation.set(-Math.PI / 2, 0, 0);
 			return _this;
 		}
 
 		_createClass(Level, [{
+			key: 'update',
+			value: function update(dt) {}
+		}, {
+			key: 'buildPlane',
+			value: function buildPlane() {
+				var material = new _three.MeshBasicMaterial({
+					color: 0xfafafa
+				});
+				var geometry = new _three.PlaneGeometry(150, 150, 1, 1);
+				var mesh = new _three.Mesh(geometry, material);
+
+				return mesh;
+			}
+		}, {
 			key: 'buildData',
 			value: function buildData() {
-				this.data = new Array(4);
-				this.data[0] = [0, 0];
-				this.data[1] = [0, 10];
-				this.data[2] = [1, 10.5];
-				this.data[3] = [1, 12];
+				this.data = new Array(3);
+				this.data[0] = [1, -5];
+				this.data[1] = [1, 1];
 
 				var x = 20;
-				var y = this.data[3][1];
-				var i = 4;
+				this.data[2] = [20, 1.25];
+
+				var y = this.data[2][1];
+				var i = 3;
 				while (x > 2) {
-					x -= this.random.inRange(i * 0.25, i * 0.5) - i * 0.3;
-					y += this.random.inRange(1.5, 2.5);
-					console.log(x);
+					x -= (this.random.inRange(0, 1) - 0.2) * 4;
+					y += this.random.inRange(1.5, 5);
+					//console.log(x);
 					this.data.push([x, y]);
 					i++;
 				}
-
-				this.data.push([0, this.data[i - 1][1] + 1]);
-				this.data.push([0, this.data[i][1] + 10]);
 			}
 		}, {
-			key: 'buildGeometry',
-			value: function buildGeometry() {
+			key: 'buildOutline',
+			value: function buildOutline() {
 				var geometry = new _three.Geometry();
 
 				var prevX = 0;
-				var prevY = 0;
+				var prevY = -5;
+
+				var leftSide = [];
+				var rightSide = [];
 				for (var i = 0; i < this.data.length; i++) {
 					var point = this.data[i];
 
@@ -2637,34 +2686,33 @@
 
 					var x = _point[0];
 					var y = _point[1];
+					//console.log(x, y);
 
-					console.log(x, y);
 					if (i == this.data.length - 1) x = 0;
-					geometry.vertices.push(new _three.Vector3(-150, y, 0), new _three.Vector3(-x, y, 0), new _three.Vector3(150, y, 0), new _three.Vector3(x, y, 0));
 
-					if (i > 0) {
-						geometry.faces.push(new _three.Face3(i * 4, i * 4 - 3, i * 4 + 1));
-						geometry.faces.push(new _three.Face3(i * 4, i * 4 - 4, i * 4 - 3));
+					leftSide.push(new _three.Vector3(-prevX, prevY, 0));
+					rightSide.push(new _three.Vector3(prevX, prevY, 0));
 
-						geometry.faces.push(new _three.Face3(i * 4 + 2, i * 4 + 3, i * 4 - 1));
-						geometry.faces.push(new _three.Face3(i * 4 + 2, i * 4 - 1, i * 4 - 2));
-					}
+					leftSide.push(new _three.Vector3(-x, y, 0));
+					rightSide.push(new _three.Vector3(x, y, 0));
 
+					prevX = x;
 					prevY = y;
 				}
 
-				geometry.colorsNeedUpdate = true;
+				geometry.vertices = leftSide.concat(rightSide.reverse());
+				geometry.computeLineDistances();
 
-				geometry.computeBoundingSphere();
-
-				console.log(geometry);
-
-				return geometry;
+				return new _three.LineSegments(geometry, new _three.LineDashedMaterial({
+					color: 0xD61C1C,
+					dashSize: 1, gapSize: 0.5,
+					linewidth: 5
+				}));
 			}
 		}]);
 
 		return Level;
-	})(_three.Mesh);
+	})(_three.Object3D);
 
 /***/ },
 /* 3 */
@@ -2697,6 +2745,171 @@
 
 		return Random;
 	})();
+
+/***/ },
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+	exports.Player = undefined;
+
+	var _three = __webpack_require__(1);
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var Player = exports.Player = (function (_Object3D) {
+		_inherits(Player, _Object3D);
+
+		function Player(level) {
+			_classCallCheck(this, Player);
+
+			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Player).call(this));
+
+			_this.level = level;
+
+			var ballMaterial = new _three.MeshLambertMaterial({
+				color: 0xeeeeee
+			});
+
+			_this.ball1 = new _three.Mesh(new _three.SphereGeometry(1, 8, 6), ballMaterial);
+			_this.ball2 = new _three.Mesh(new _three.SphereGeometry(1, 8, 6), ballMaterial);
+
+			_this.ball1.position.setX(-1);
+			_this.ball2.position.setX(1);
+
+			_this.add(_this.ball1);
+			_this.add(_this.ball2);
+
+			_this.initCamera();
+
+			_this.ballVelocity = 0.75;
+			_this.ballAngle = 0.0;
+			_this.progress = 0.0;
+			return _this;
+		}
+
+		_createClass(Player, [{
+			key: 'changeVelocity',
+			value: function changeVelocity(delta) {
+				this.ballVelocity += delta;
+			}
+		}, {
+			key: 'changeAngle',
+			value: function changeAngle(delta) {
+				this.ballAngle += delta;
+			}
+		}, {
+			key: 'initCamera',
+			value: function initCamera() {
+				this.camera = new _three.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+				this.camera.position.setY(10);
+				this.camera.position.setZ(10);
+				this.camera.rotation.set(-Math.PI / 6, 0, 0);
+
+				//this.camera.position.setY(70);
+				//this.camera.rotation.set(-Math.PI/2, 0, 0);
+				this.add(this.camera);
+			}
+		}, {
+			key: 'calculateLinePoint',
+			value: function calculateLinePoint() {
+				var numSegments = this.level.data.length;
+				var pos = this.progress * numSegments;
+				var segmentIndex = parseInt(pos);
+
+				if (segmentIndex >= numSegments - 1) {
+					return [0, 0];
+				}
+
+				var s = this.level.data[segmentIndex];
+				var s2 = this.level.data[segmentIndex + 1];
+
+				var dx = s2[0] - s[0];
+				var dy = s2[1] - s[1];
+				var sLength = Math.sqrt(dx * dx + dy * dy);
+
+				var segmentProgress = pos - segmentIndex;
+				var x = s[0] + dx * segmentProgress;
+				var y = -s[1] - dy * segmentProgress;
+
+				return [x, y, sLength];
+			}
+		}, {
+			key: 'distanceFromLine',
+			value: function distanceFromLine() {}
+		}, {
+			key: 'update',
+			value: function update(dt, keysPressed) {
+				for (var i = 0; i < keysPressed.length; i++) {
+					//console.log(keysPressed);
+					var keyCode = keysPressed[i];
+					if (keyCode == 37) {
+						this.changeAngle(5 * dt);
+					}
+					if (keyCode == 39) {
+						this.changeAngle(-5 * dt);
+					}
+					if (keyCode == 38) {
+						this.changeVelocity(5 * dt);
+					}
+					if (keyCode == 40) {
+						this.changeVelocity(-5 * dt);
+					}
+				}
+
+				//this.progress += this.ballVelocity * dt;
+				//if (this.progress > 1.0) {
+				//	return
+				//}
+				//var [x, z, sLength] = this.calculateLinePoint();
+				//this.progress += (this.ballVelocity * dt) / sLength;
+				////
+				//var oldX = this.ball1.position.x;
+				//var oldZ = this.position.z;
+				//
+				//var dx = x-oldX;
+				//var dz = z-oldZ;
+				//
+				//console.log(Math.sqrt(dx*dx + dz*dz));
+
+				//var ballScale = this.progress/3*2+0.75;
+				//this.ball1.scale.set(ballScale, ballScale, ballScale);
+				//this.ball2.scale.set(ballScale, ballScale, ballScale);
+
+				this.ball1.position.x += -Math.cos(this.ballAngle) * this.ballVelocity * dt;
+				this.position.z += Math.sin(this.ballAngle) * this.ballVelocity * dt;
+
+				this.ball2.position.x += Math.cos(this.ballAngle) * this.ballVelocity * dt;
+				this.position.z += Math.sin(this.ballAngle) * this.ballVelocity * dt;
+
+				//this.ball1.position.x = x;
+				//this.ball2.position.x = -x;
+
+				var ballScale = 1;
+				this.ball1.position.y = ballScale;
+				this.ball2.position.y = ballScale;
+
+				//this.position.z = z;
+
+				//this.ball1.position.z += 1/incline*dt;
+
+				//this.ball2.position.x = s[0];
+				//this.ball2.position.z = -s[1];
+			}
+		}]);
+
+		return Player;
+	})(_three.Object3D);
 
 /***/ }
 /******/ ]);
