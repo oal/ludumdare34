@@ -5,6 +5,8 @@ export class Random {
 
 	inRange(a, b) {
 		var x = Math.sin(this.seed++) * 10000;
-		return a + (b - a) * (x - Math.floor(x));
+		var val = a + (b - a) * (x - Math.floor(x));
+		//console.log(a, b, val);
+		return val;
 	}
 }

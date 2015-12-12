@@ -3,17 +3,20 @@ import {
 	Geometry,
 	MeshBasicMaterial,
 	Vector3, Face3, Color, LineSegments, LineDashedMaterial,
-	Mesh, PlaneGeometry} from 'three';
+	Mesh, PlaneGeometry,
+	PerspectiveCamera
+} from 'three';
 
 import {Random} from './random';
+import {Food} from './food';
 
 export class Level extends Object3D {
 	constructor() {
 		super();
 
+		this._size = 10;
 		this.random = new Random(Math.random());
-
-		this.buildData();
+		this.food = [];
 
 		var outline = this.buildOutline();
 		this.add(outline);
@@ -21,68 +24,65 @@ export class Level extends Object3D {
 		var plane = this.buildPlane();
 		this.add(plane);
 
-		this.rotation.set(-Math.PI / 2, 0, 0);
+		this.addCamera();
+	}
+
+	addCamera() {
+		this.camera = new PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+		//this.camera.position.setY(1)
+		this.camera.position.setX(4);
+		this.camera.position.setY(20);
+		this.camera.position.setZ(20);
+
+		this.camera.lookAt(new Vector3(0, 0, 0));
 	}
 
 	update(dt) {
+		for (var i = 0; i < this.food.length; i++) {
+			var obj = this.food[i];
+			obj.update(dt);
+		}
 
+		if (this.food.length < 5) {
+			this.addFood();
+		}
+	}
+
+	addFood() {
+		var food = new Food(
+			this.random.inRange(-this._size + 2, this._size - 2),
+			this.random.inRange(-this._size + 2, this._size - 2)
+		);
+		this.food.push(food);
+		this.add(food);
 	}
 
 	buildPlane() {
 		var material = new MeshBasicMaterial({
-			color: 0xfafafa
+			color: 0x7D4F14
 		});
-		var geometry = new PlaneGeometry(150, 150, 1, 1);
+		var geometry = new PlaneGeometry(this._size * 2, this._size * 2, 1, 1);
 		var mesh = new Mesh(geometry, material);
+		mesh.rotation.set(-Math.PI / 2, 0, 0);
 
 		return mesh;
-	}
-
-	buildData() {
-		this.data = new Array(3);
-		this.data[0] = [1, -5];
-		this.data[1] = [1, 1];
-
-		var x = 20;
-		this.data[2] = [20, 1.25];
-
-		var y = this.data[2][1];
-		var i = 3;
-		while (x > 2) {
-			x -= (this.random.inRange(0, 1)-0.2) * 4;
-			y += this.random.inRange(1.5, 5);
-			//console.log(x);
-			this.data.push([x, y]);
-			i++;
-		}
 	}
 
 	buildOutline() {
 		var geometry = new Geometry();
 
-		var prevX = 0;
-		var prevY = -5;
+		geometry.vertices.push(new Vector3(-this._size, 0.1, -this._size));
+		geometry.vertices.push(new Vector3(-this._size, 0.1, this._size));
 
-		var leftSide = [];
-		var rightSide = [];
-		for (var i = 0; i < this.data.length; i++) {
-			var point = this.data[i];
-			var [x, y] = point;
-			//console.log(x, y);
-			if (i == this.data.length - 1) x = 0;
+		geometry.vertices.push(new Vector3(-this._size, 0.1, this._size));
+		geometry.vertices.push(new Vector3(this._size, 0.1, this._size));
 
+		geometry.vertices.push(new Vector3(this._size, 0.1, this._size));
+		geometry.vertices.push(new Vector3(this._size, 0.1, -this._size));
 
-			leftSide.push(new Vector3(-prevX, prevY, 0));
-			rightSide.push(new Vector3(prevX, prevY, 0));
+		geometry.vertices.push(new Vector3(this._size, 0.1, -this._size));
+		geometry.vertices.push(new Vector3(-this._size, 0.1, -this._size));
 
-			leftSide.push(new Vector3(-x, y, 0));
-			rightSide.push(new Vector3(x, y, 0));
-
-			prevX = x;
-			prevY = y;
-		}
-
-		geometry.vertices = leftSide.concat(rightSide.reverse());
 		geometry.computeLineDistances();
 
 		return new LineSegments(geometry, new LineDashedMaterial({

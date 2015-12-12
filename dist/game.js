@@ -152,7 +152,7 @@
 		}, {
 			key: 'render',
 			value: function render() {
-				this.renderer.render(this.scene, this.player.camera);
+				this.renderer.render(this.scene, this.level.camera);
 			}
 		}]);
 
@@ -2594,8 +2594,6 @@
 
 	'use strict';
 
-	var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; })();
-
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
 	Object.defineProperty(exports, "__esModule", {
@@ -2606,6 +2604,8 @@
 	var _three = __webpack_require__(1);
 
 	var _random = __webpack_require__(3);
+
+	var _food = __webpack_require__(5);
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -2621,9 +2621,9 @@
 
 			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Level).call(this));
 
+			_this._size = 10;
 			_this.random = new _random.Random(Math.random());
-
-			_this.buildData();
+			_this.food = [];
 
 			var outline = _this.buildOutline();
 			_this.add(outline);
@@ -2631,76 +2631,69 @@
 			var plane = _this.buildPlane();
 			_this.add(plane);
 
-			_this.rotation.set(-Math.PI / 2, 0, 0);
+			_this.addCamera();
 			return _this;
 		}
 
 		_createClass(Level, [{
+			key: 'addCamera',
+			value: function addCamera() {
+				this.camera = new _three.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+				//this.camera.position.setY(1)
+				this.camera.position.setX(4);
+				this.camera.position.setY(20);
+				this.camera.position.setZ(20);
+
+				this.camera.lookAt(new _three.Vector3(0, 0, 0));
+			}
+		}, {
 			key: 'update',
-			value: function update(dt) {}
+			value: function update(dt) {
+				for (var i = 0; i < this.food.length; i++) {
+					var obj = this.food[i];
+					obj.update(dt);
+				}
+
+				if (this.food.length < 5) {
+					this.addFood();
+				}
+			}
+		}, {
+			key: 'addFood',
+			value: function addFood() {
+				var food = new _food.Food(this.random.inRange(-this._size + 2, this._size - 2), this.random.inRange(-this._size + 2, this._size - 2));
+				this.food.push(food);
+				this.add(food);
+			}
 		}, {
 			key: 'buildPlane',
 			value: function buildPlane() {
 				var material = new _three.MeshBasicMaterial({
-					color: 0xfafafa
+					color: 0x7D4F14
 				});
-				var geometry = new _three.PlaneGeometry(150, 150, 1, 1);
+				var geometry = new _three.PlaneGeometry(this._size * 2, this._size * 2, 1, 1);
 				var mesh = new _three.Mesh(geometry, material);
+				mesh.rotation.set(-Math.PI / 2, 0, 0);
 
 				return mesh;
-			}
-		}, {
-			key: 'buildData',
-			value: function buildData() {
-				this.data = new Array(3);
-				this.data[0] = [1, -5];
-				this.data[1] = [1, 1];
-
-				var x = 20;
-				this.data[2] = [20, 1.25];
-
-				var y = this.data[2][1];
-				var i = 3;
-				while (x > 2) {
-					x -= (this.random.inRange(0, 1) - 0.2) * 4;
-					y += this.random.inRange(1.5, 5);
-					//console.log(x);
-					this.data.push([x, y]);
-					i++;
-				}
 			}
 		}, {
 			key: 'buildOutline',
 			value: function buildOutline() {
 				var geometry = new _three.Geometry();
 
-				var prevX = 0;
-				var prevY = -5;
+				geometry.vertices.push(new _three.Vector3(-this._size, 0.1, -this._size));
+				geometry.vertices.push(new _three.Vector3(-this._size, 0.1, this._size));
 
-				var leftSide = [];
-				var rightSide = [];
-				for (var i = 0; i < this.data.length; i++) {
-					var point = this.data[i];
+				geometry.vertices.push(new _three.Vector3(-this._size, 0.1, this._size));
+				geometry.vertices.push(new _three.Vector3(this._size, 0.1, this._size));
 
-					var _point = _slicedToArray(point, 2);
+				geometry.vertices.push(new _three.Vector3(this._size, 0.1, this._size));
+				geometry.vertices.push(new _three.Vector3(this._size, 0.1, -this._size));
 
-					var x = _point[0];
-					var y = _point[1];
-					//console.log(x, y);
+				geometry.vertices.push(new _three.Vector3(this._size, 0.1, -this._size));
+				geometry.vertices.push(new _three.Vector3(-this._size, 0.1, -this._size));
 
-					if (i == this.data.length - 1) x = 0;
-
-					leftSide.push(new _three.Vector3(-prevX, prevY, 0));
-					rightSide.push(new _three.Vector3(prevX, prevY, 0));
-
-					leftSide.push(new _three.Vector3(-x, y, 0));
-					rightSide.push(new _three.Vector3(x, y, 0));
-
-					prevX = x;
-					prevY = y;
-				}
-
-				geometry.vertices = leftSide.concat(rightSide.reverse());
 				geometry.computeLineDistances();
 
 				return new _three.LineSegments(geometry, new _three.LineDashedMaterial({
@@ -2739,7 +2732,9 @@
 			key: "inRange",
 			value: function inRange(a, b) {
 				var x = Math.sin(this.seed++) * 10000;
-				return a + (b - a) * (x - Math.floor(x));
+				var val = a + (b - a) * (x - Math.floor(x));
+				//console.log(a, b, val);
+				return val;
 			}
 		}]);
 
@@ -2777,139 +2772,173 @@
 
 			_this.level = level;
 
-			var ballMaterial = new _three.MeshLambertMaterial({
-				color: 0xeeeeee
+			_this._material = new _three.MeshPhongMaterial({
+				color: 0x1E9C08
 			});
+			_this._sphere = new _three.SphereGeometry(0.45, 8, 3);
 
-			_this.ball1 = new _three.Mesh(new _three.SphereGeometry(1, 8, 6), ballMaterial);
-			_this.ball2 = new _three.Mesh(new _three.SphereGeometry(1, 8, 6), ballMaterial);
+			_this.bridgeMode = 0;
+			_this.head = null;
+			_this.tail = null;
+			_this.numParts = 0;
+			_this.addPart();
+			_this.addPart();
+			_this.addPart();
+			_this.addPart();
 
-			_this.ball1.position.setX(-1);
-			_this.ball2.position.setX(1);
+			_this.updateMatrixWorld(true);
 
-			_this.add(_this.ball1);
-			_this.add(_this.ball2);
-
-			_this.initCamera();
-
-			_this.ballVelocity = 0.75;
-			_this.ballAngle = 0.0;
-			_this.progress = 0.0;
+			_this.curl = 0;
+			_this.angle = 0;
 			return _this;
 		}
 
 		_createClass(Player, [{
+			key: 'addPart',
+			value: function addPart() {
+				var geom = new _three.BoxGeometry(0.5, 1, 0.5);
+				for (var i = 0; i < geom.vertices.length; i++) {
+					var vertex = geom.vertices[i];
+					vertex.y += 0.5;
+				}
+				if (this.head !== null) {
+					geom.merge(this._sphere);
+				}
+				var mesh = new _three.Mesh(geom, this._material);
+
+				if (this.head === null) {
+					this.head = mesh;
+					this.add(mesh);
+				} else {
+					this.tail.add(mesh);
+					this.tail.next = mesh;
+					mesh.position.y = 1;
+				}
+				this.tail = mesh;
+				this.numParts++;
+			}
+		}, {
 			key: 'changeVelocity',
 			value: function changeVelocity(delta) {
-				this.ballVelocity += delta;
+				this.velocity += delta;
 			}
 		}, {
-			key: 'changeAngle',
-			value: function changeAngle(delta) {
-				this.ballAngle += delta;
-			}
-		}, {
-			key: 'initCamera',
-			value: function initCamera() {
-				this.camera = new _three.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-				this.camera.position.setY(10);
-				this.camera.position.setZ(10);
-				this.camera.rotation.set(-Math.PI / 6, 0, 0);
+			key: 'updateCurl',
+			value: function updateCurl(dt) {
+				var tmp = this.head.next;
+				var delta = dt * this.curl;
 
-				//this.camera.position.setY(70);
-				//this.camera.rotation.set(-Math.PI/2, 0, 0);
-				this.add(this.camera);
-			}
-		}, {
-			key: 'calculateLinePoint',
-			value: function calculateLinePoint() {
-				var numSegments = this.level.data.length;
-				var pos = this.progress * numSegments;
-				var segmentIndex = parseInt(pos);
+				var maxCurl = Math.PI / (this.numParts - 1);
 
-				if (segmentIndex >= numSegments - 1) {
-					return [0, 0];
+				while (tmp) {
+					tmp.rotation.x += delta;
+					if (tmp.rotation.x > maxCurl) tmp.rotation.x = maxCurl;else if (tmp.rotation.x < -maxCurl) tmp.rotation.x = -maxCurl;
+					tmp = tmp.next;
+					delta = delta * 0.9;
 				}
-
-				var s = this.level.data[segmentIndex];
-				var s2 = this.level.data[segmentIndex + 1];
-
-				var dx = s2[0] - s[0];
-				var dy = s2[1] - s[1];
-				var sLength = Math.sqrt(dx * dx + dy * dy);
-
-				var segmentProgress = pos - segmentIndex;
-				var x = s[0] + dx * segmentProgress;
-				var y = -s[1] - dy * segmentProgress;
-
-				return [x, y, sLength];
+				this.curl *= 0.9;
 			}
 		}, {
-			key: 'distanceFromLine',
-			value: function distanceFromLine() {}
+			key: 'flipCurls',
+			value: function flipCurls() {
+				var tmp = this.head.next;
+				while (tmp) {
+					tmp.rotation.x = -tmp.rotation.x;
+					console.log(tmp.rotation.x);
+					tmp = tmp.next;
+				}
+			}
 		}, {
 			key: 'update',
 			value: function update(dt, keysPressed) {
+				this.bridgeMode = 0;
 				for (var i = 0; i < keysPressed.length; i++) {
 					//console.log(keysPressed);
 					var keyCode = keysPressed[i];
 					if (keyCode == 37) {
-						this.changeAngle(5 * dt);
+						this.angle += 15 * dt;
 					}
 					if (keyCode == 39) {
-						this.changeAngle(-5 * dt);
+						this.angle -= 15 * dt;
 					}
 					if (keyCode == 38) {
-						this.changeVelocity(5 * dt);
+						this.curl -= 10 * dt;
 					}
 					if (keyCode == 40) {
-						this.changeVelocity(-5 * dt);
+						this.curl += 10 * dt;
 					}
 				}
 
-				//this.progress += this.ballVelocity * dt;
-				//if (this.progress > 1.0) {
-				//	return
-				//}
-				//var [x, z, sLength] = this.calculateLinePoint();
-				//this.progress += (this.ballVelocity * dt) / sLength;
-				////
-				//var oldX = this.ball1.position.x;
-				//var oldZ = this.position.z;
-				//
-				//var dx = x-oldX;
-				//var dz = z-oldZ;
-				//
-				//console.log(Math.sqrt(dx*dx + dz*dz));
+				var tailPos = this.tail.localToWorld(new _three.Vector3(0, 0, 0));
+				if (tailPos.y === 1 && this.bridgeMode === 0) {
+					this.head.position.set(tailPos.x, 0, tailPos.z);
 
-				//var ballScale = this.progress/3*2+0.75;
-				//this.ball1.scale.set(ballScale, ballScale, ballScale);
-				//this.ball2.scale.set(ballScale, ballScale, ballScale);
+					//this.head.rotation.y += Math.PI;
+					this.bridgeMode = 0;
+					this.flipCurls();
 
-				this.ball1.position.x += -Math.cos(this.ballAngle) * this.ballVelocity * dt;
-				this.position.z += Math.sin(this.ballAngle) * this.ballVelocity * dt;
+					if (this.tail.rotation.x < 0) this.bridgeMode = -1;else this.bridgeMode = 1;
+				}
 
-				this.ball2.position.x += Math.cos(this.ballAngle) * this.ballVelocity * dt;
-				this.position.z += Math.sin(this.ballAngle) * this.ballVelocity * dt;
-
-				//this.ball1.position.x = x;
-				//this.ball2.position.x = -x;
-
-				var ballScale = 1;
-				this.ball1.position.y = ballScale;
-				this.ball2.position.y = ballScale;
-
-				//this.position.z = z;
-
-				//this.ball1.position.z += 1/incline*dt;
-
-				//this.ball2.position.x = s[0];
-				//this.ball2.position.z = -s[1];
+				this.updateCurl(dt);
+				this.head.rotation.y += this.angle * dt;
+				this.angle *= 0.9;
 			}
 		}]);
 
 		return Player;
 	})(_three.Object3D);
+
+/***/ },
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+	exports.Food = undefined;
+
+	var _three = __webpack_require__(1);
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var Food = exports.Food = (function (_Mesh) {
+		_inherits(Food, _Mesh);
+
+		function Food(x, z) {
+			_classCallCheck(this, Food);
+
+			var geometry = new _three.SphereGeometry(0.5, 8, 4);
+			var material = new _three.MeshPhongMaterial({
+				color: 0xaa0000
+			});
+
+			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Food).call(this, geometry, material));
+
+			_this.position.x = x;
+			_this.position.y = 0;
+			_this.position.z = z;
+
+			_this.velocity = -0.11;
+
+			return _this;
+		}
+
+		_createClass(Food, [{
+			key: 'update',
+			value: function update(dt) {}
+		}]);
+
+		return Food;
+	})(_three.Mesh);
 
 /***/ }
 /******/ ]);

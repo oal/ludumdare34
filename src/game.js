@@ -89,7 +89,7 @@ class Game {
 	}
 
 	render() {
-		this.renderer.render(this.scene, this.player.camera);
+		this.renderer.render(this.scene, this.level.camera);
 	}
 }
 

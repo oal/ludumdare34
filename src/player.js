@@ -1,4 +1,4 @@
-import {Object3D, Mesh, SphereGeometry, MeshLambertMaterial, PerspectiveCamera} from 'three';
+import {Object3D, Mesh, BoxGeometry, SphereGeometry, MeshPhongMaterial, Vector3} from 'three';
 
 export class Player extends Object3D {
 	constructor(level) {
@@ -6,130 +6,115 @@ export class Player extends Object3D {
 
 		this.level = level;
 
-		var ballMaterial = new MeshLambertMaterial({
-			color: 0xeeeeee
+		this._material = new MeshPhongMaterial({
+			color: 0x1E9C08
 		});
-
-		this.ball1 = new Mesh(new SphereGeometry(1, 8, 6), ballMaterial);
-		this.ball2 = new Mesh(new SphereGeometry(1, 8, 6), ballMaterial);
+		this._sphere = new SphereGeometry(0.45, 8, 3);
 
 
-		this.ball1.position.setX(-1);
-		this.ball2.position.setX(1);
+		this.bridgeMode = 0;
+		this.head = null;
+		this.tail = null;
+		this.numParts = 0;
+		this.addPart();
+		this.addPart();
+		this.addPart();
+		this.addPart();
 
+		this.updateMatrixWorld(true);
 
-		this.add(this.ball1);
-		this.add(this.ball2);
+		this.curl = 0;
+		this.angle = 0;
+	}
 
-		this.initCamera();
+	addPart() {
+		var geom = new BoxGeometry(0.5, 1, 0.5);
+		for (var i = 0; i < geom.vertices.length; i++) {
+			var vertex = geom.vertices[i];
+			vertex.y += 0.5;
+		}
+		if (this.head !== null) {
+			geom.merge(this._sphere);
+		}
+		var mesh = new Mesh(geom, this._material);
 
-		this.ballVelocity = 0.75;
-		this.ballAngle = 0.0;
-		this.progress = 0.0;
+		if (this.head === null) {
+			this.head = mesh;
+			this.add(mesh);
+		}
+		else {
+			this.tail.add(mesh);
+			this.tail.next = mesh;
+			mesh.position.y = 1;
+		}
+		this.tail = mesh;
+		this.numParts++;
+
 	}
 
 	changeVelocity(delta) {
-		this.ballVelocity += delta;
+		this.velocity += delta;
 	}
 
-	changeAngle(delta) {
-		this.ballAngle += delta;
-	}
 
-	initCamera() {
-		this.camera = new PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-		this.camera.position.setY(10);
-		this.camera.position.setZ(10);
-		this.camera.rotation.set(-Math.PI / 6, 0, 0);
+	updateCurl(dt) {
+		var tmp = this.head.next;
+		var delta = dt * this.curl;
 
-		//this.camera.position.setY(70);
-		//this.camera.rotation.set(-Math.PI/2, 0, 0);
-		this.add(this.camera);
-	}
+		var maxCurl = Math.PI / (this.numParts - 1);
 
-	calculateLinePoint() {
-		var numSegments = this.level.data.length;
-		var pos = this.progress * numSegments;
-		var segmentIndex = parseInt(pos);
-
-		if (segmentIndex >= numSegments - 1) {
-			return [0, 0]
+		while (tmp) {
+			tmp.rotation.x += delta;
+			if (tmp.rotation.x > maxCurl) tmp.rotation.x = maxCurl;
+			else if (tmp.rotation.x < -maxCurl) tmp.rotation.x = -maxCurl;
+			tmp = tmp.next;
+			delta = delta * 0.9;
 		}
-
-		var s = this.level.data[segmentIndex];
-		var s2 = this.level.data[segmentIndex + 1];
-
-		var dx = s2[0] - s[0];
-		var dy = s2[1] - s[1];
-		var sLength = Math.sqrt(dx * dx + dy * dy);
-
-		var segmentProgress = pos - segmentIndex;
-		var x = s[0] + dx * segmentProgress;
-		var y = -s[1] - dy * segmentProgress;
-
-		return [x, y, sLength];
+		this.curl *= 0.9
 	}
 
-	distanceFromLine() {
-
+	flipCurls() {
+		var tmp = this.head.next;
+		while (tmp) {
+			tmp.rotation.x = -tmp.rotation.x;
+			console.log(tmp.rotation.x)
+			tmp = tmp.next;
+		}
 	}
 
 	update(dt, keysPressed) {
+		this.bridgeMode = 0;
 		for (var i = 0; i < keysPressed.length; i++) {
 			//console.log(keysPressed);
 			var keyCode = keysPressed[i];
 			if (keyCode == 37) {
-				this.changeAngle(5 * dt);
+				this.angle += 15 * dt;
 			}
 			if (keyCode == 39) {
-				this.changeAngle(-5 * dt);
+				this.angle -= 15 * dt;
 			}
 			if (keyCode == 38) {
-				this.changeVelocity(5 * dt);
+				this.curl -= 10 * dt;
 			}
 			if (keyCode == 40) {
-				this.changeVelocity(-5 * dt);
+				this.curl += 10 * dt;
 			}
 		}
 
-		//this.progress += this.ballVelocity * dt;
-		//if (this.progress > 1.0) {
-		//	return
-		//}
-		//var [x, z, sLength] = this.calculateLinePoint();
-		//this.progress += (this.ballVelocity * dt) / sLength;
-		////
-		//var oldX = this.ball1.position.x;
-		//var oldZ = this.position.z;
-		//
-		//var dx = x-oldX;
-		//var dz = z-oldZ;
-		//
-		//console.log(Math.sqrt(dx*dx + dz*dz));
+		var tailPos = this.tail.localToWorld(new Vector3(0, 0, 0));
+		if (tailPos.y === 1 && this.bridgeMode === 0) {
+			this.head.position.set(tailPos.x, 0, tailPos.z);
 
-		//var ballScale = this.progress/3*2+0.75;
-		//this.ball1.scale.set(ballScale, ballScale, ballScale);
-		//this.ball2.scale.set(ballScale, ballScale, ballScale);
+			//this.head.rotation.y += Math.PI;
+			this.bridgeMode = 0;
+			this.flipCurls();
 
-		this.ball1.position.x += -Math.cos(this.ballAngle) * this.ballVelocity * dt;
-		this.position.z += Math.sin(this.ballAngle) * this.ballVelocity * dt;
+			if (this.tail.rotation.x < 0) this.bridgeMode = -1;
+			else this.bridgeMode = 1;
+		}
 
-		this.ball2.position.x += Math.cos(this.ballAngle) * this.ballVelocity * dt;
-		this.position.z += Math.sin(this.ballAngle) * this.ballVelocity * dt;
-
-
-		//this.ball1.position.x = x;
-		//this.ball2.position.x = -x;
-
-		var ballScale = 1;
-		this.ball1.position.y = ballScale;
-		this.ball2.position.y = ballScale;
-
-		//this.position.z = z;
-
-		//this.ball1.position.z += 1/incline*dt;
-
-		//this.ball2.position.x = s[0];
-		//this.ball2.position.z = -s[1];
+		this.updateCurl(dt);
+		this.head.rotation.y += this.angle * dt;
+		this.angle *= 0.9;
 	}
 }
