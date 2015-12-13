@@ -1,6 +1,6 @@
 # Crazy Slinky Snake
 
-Crazy Slinky Snake is my entry for the LudumDare 34 game jam, and was made in 24 hours.
+Crazy Slinky Snake is my entry for the LudumDare 34 game jam, and was made in 48 hours.
 
 You control a snake, whose only goal is to eat as many plants as possible before dying an inevitable death.
 
