@@ -64,7 +64,7 @@
 
 			_classCallCheck(this, Game);
 
-			new _loader.Loader(['body', 'joint', 'plant'], ['target'], function (models, textures) {
+			new _loader.Loader(['body', 'joint', 'plant'], ['target.png', 'dirt.jpg'], function (models, textures) {
 				_this.models = models;
 				_this.textures = textures;
 				_this.setUp();
@@ -91,7 +91,7 @@
 				this.player = new _player.Player(this.models, this.textures);
 				this.scene.add(this.player);
 
-				this.level = new _level.Level(this.models, this.player);
+				this.level = new _level.Level(this.models, this.textures, this.player);
 				this.scene.add(this.level);
 
 				this.skipFrame = true;
@@ -150,6 +150,7 @@
 			key: 'gameOver',
 			value: function gameOver() {
 				this.isPaused = true;
+				document.getElementById('finalscore').innerHTML = this.player.numParts;
 				var tweet = encodeURIComponent('I got a Crazy Slinky Snake score of ' + this.player.numParts + '! How much can you eat? #LDJAM http://static.olav.it/LD34/ via @lindekleiv');
 				document.getElementById('tweet').href = 'https://twitter.com/intent/tweet?text=' + tweet;
 				document.getElementById('gameover').style.display = 'block';
@@ -2640,14 +2641,15 @@
 	var Level = exports.Level = (function (_Object3D) {
 		_inherits(Level, _Object3D);
 
-		function Level(models, player) {
+		function Level(models, textures, player) {
 			_classCallCheck(this, Level);
 
 			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Level).call(this));
 
 			_this.player = player;
 			_this._plant = models.plant;
-			_this._size = 10;
+			_this._dirtTexture = textures.dirt;
+			_this._size = 14;
 			_this.random = new _random.Random(Math.random());
 			_this.food = [];
 
@@ -2665,10 +2667,9 @@
 			key: 'addCamera',
 			value: function addCamera() {
 				this.camera = new _three.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-				//this.camera.position.setY(1)
-				this.camera.position.setX(4);
-				this.camera.position.setY(20);
-				this.camera.position.setZ(20);
+				this.camera.position.setX(6);
+				this.camera.position.setY(17);
+				this.camera.position.setZ(21);
 
 				this.camera.lookAt(new _three.Vector3(0, 0, 0));
 			}
@@ -2678,15 +2679,15 @@
 				var tailPos = this.player.getTailPosition();
 				for (var i = 0; i < this.food.length; i++) {
 					var plant = this.food[i];
+					if (plant.scale.x < 0) this.food.splice(i, 1);
 					if (plant.position.distanceTo(tailPos) < 1) {
-						this.food.splice(i, 1);
-						this.remove(plant);
+						plant.kill();
 						this.player.addPart();
 					}
 					plant.update(dt);
 				}
 
-				if (this.food.length < 5) {
+				if (this.food.length < 10) {
 					this.addFood();
 				}
 			}
@@ -2701,7 +2702,8 @@
 			key: 'buildPlane',
 			value: function buildPlane() {
 				var material = new _three.MeshBasicMaterial({
-					color: 0x7D4F14
+					color: 0xffffff,
+					map: this._dirtTexture
 				});
 				var geometry = new _three.PlaneGeometry(this._size * 2, this._size * 2, 1, 1);
 				var mesh = new _three.Mesh(geometry, material);
@@ -2810,14 +2812,35 @@
 			_this.position.y = 0;
 			_this.position.z = z;
 
-			_this.velocity = -0.11;
+			_this.growth = 1;
+			_this.scale.set(0, 0, 0);
+
+			_this.rotation.y = Math.random() * Math.PI * 2;
+			_this.receiveShadow = true;
+			_this.castShadow = true;
 
 			return _this;
 		}
 
 		_createClass(Food, [{
 			key: 'update',
-			value: function update(dt) {}
+			value: function update(dt) {
+				if (this.growth === 0) return;
+				if (this.scale.x < 0) this.parent.remove(this);
+
+				this.rotation.y += dt * this.growth;
+
+				var s = this.scale.x;
+				s += dt * this.growth;
+				if (s > 1.0) this.growth = 0;
+
+				this.scale.set(s, s, s);
+			}
+		}, {
+			key: 'kill',
+			value: function kill() {
+				this.growth = -5;
+			}
 		}]);
 
 		return Food;
@@ -2909,10 +2932,6 @@
 			key: 'addTarget',
 			value: function addTarget() {
 				var geom = new _three.PlaneGeometry(1, 1, 1);
-				//for(var i = 0; i < geom.vertices.length; i++) {
-				//	geom.vertices[i].x += 0.5;
-				//	geom.vertices[i].z += 0.5;
-				//}
 				var material = new _three.MeshBasicMaterial({
 					map: this._targetTexture,
 					transparent: true
@@ -2920,7 +2939,7 @@
 				var mesh = new _three.Mesh(geom, material);
 				mesh.position.y = 0.01;
 				mesh.rotation.x = -Math.PI / 2;
-				this.head.add(mesh);
+				this.add(mesh);
 				this.target = mesh;
 			}
 		}, {
@@ -2995,15 +3014,17 @@
 					document.getElementById('hunger').innerHTML = newHungerStr;
 				}
 
-				//
-				//var ltw = this.tail.localToWorld(new Vector3(0,0,0));
-				//var wtl = this.worldToLocal(ltw);
-				//this.target.position.setZ(-wtl.z);
+				var ltw = this.tail.localToWorld(new _three.Vector3(0, 0, 0));
+				this.target.position.setX(ltw.x + this.position.x);
+				this.target.position.setZ(ltw.z + this.position.z);
+				this.target.material.opacity = Math.max(0, 0.7 - ltw.y / this.numParts);
 			}
 		}]);
 
 		return Player;
 	})(_three.Object3D);
+
+	// halv/pi = r
 
 /***/ },
 /* 6 */
@@ -3051,8 +3072,8 @@
 			for (i = 0; i < textures.length; i++) {
 				var texture = textures[i];
 				var g = function g(n) {
-					textureLoader.load('images/' + n + '.png', function (tex) {
-						_this.textures[n] = tex;
+					textureLoader.load('images/' + n, function (tex) {
+						_this.textures[n.split('.')[0]] = tex;
 						_this._incCounter();
 					});
 				};

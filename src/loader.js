@@ -27,8 +27,8 @@ export class Loader {
 		for (i = 0; i < textures.length; i++) {
 			var texture = textures[i];
 			var g = (n) => {
-				textureLoader.load(`images/${n}.png`, (tex) => {
-					this.textures[n] = tex;
+				textureLoader.load(`images/${n}`, (tex) => {
+					this.textures[n.split('.')[0]] = tex;
 					this._incCounter()
 				})
 			};

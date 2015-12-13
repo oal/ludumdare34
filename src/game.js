@@ -7,7 +7,7 @@ import {Loader} from './loader';
 
 class Game {
 	constructor() {
-		new Loader(['body', 'joint', 'plant'], ['target'], (models, textures) => {
+		new Loader(['body', 'joint', 'plant'], ['target.png', 'dirt.jpg'], (models, textures) => {
 			this.models = models;
 			this.textures = textures;
 			this.setUp();
@@ -34,7 +34,7 @@ class Game {
 		this.player = new Player(this.models, this.textures);
 		this.scene.add(this.player);
 
-		this.level = new Level(this.models, this.player);
+		this.level = new Level(this.models, this.textures, this.player);
 		this.scene.add(this.level);
 
 
@@ -87,6 +87,7 @@ class Game {
 
 	gameOver() {
 		this.isPaused = true;
+		document.getElementById('finalscore').innerHTML = this.player.numParts;
 		var tweet = encodeURIComponent(`I got a Crazy Slinky Snake score of ${this.player.numParts}! How much can you eat? #LDJAM http://static.olav.it/LD34/ via @lindekleiv`);
 		document.getElementById('tweet').href = 'https://twitter.com/intent/tweet?text=' + tweet;
 		document.getElementById('gameover').style.display = 'block';

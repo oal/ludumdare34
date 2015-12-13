@@ -66,10 +66,6 @@ export class Player extends Object3D {
 
 	addTarget() {
 		var geom = new PlaneGeometry(1, 1, 1);
-		//for(var i = 0; i < geom.vertices.length; i++) {
-		//	geom.vertices[i].x += 0.5;
-		//	geom.vertices[i].z += 0.5;
-		//}
 		var material = new MeshBasicMaterial({
 			map: this._targetTexture,
 			transparent: true
@@ -77,7 +73,7 @@ export class Player extends Object3D {
 		var mesh = new Mesh(geom, material);
 		mesh.position.y = 0.01;
 		mesh.rotation.x = -Math.PI / 2;
-		this.head.add(mesh);
+		this.add(mesh);
 		this.target = mesh;
 	}
 
@@ -151,9 +147,11 @@ export class Player extends Object3D {
 			document.getElementById('hunger').innerHTML = newHungerStr;
 		}
 
-		//
-		//var ltw = this.tail.localToWorld(new Vector3(0,0,0));
-		//var wtl = this.worldToLocal(ltw);
-		//this.target.position.setZ(-wtl.z);
+		var ltw = this.tail.localToWorld(new Vector3(0,0,0));
+		this.target.position.setX(ltw.x + this.position.x);
+		this.target.position.setZ(ltw.z + this.position.z);
+		this.target.material.opacity = Math.max(0, 0.7-(ltw.y/this.numParts));
 	}
 }
+
+// halv/pi = r

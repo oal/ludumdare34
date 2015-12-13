@@ -11,12 +11,13 @@ import {Random} from './random';
 import {Food} from './food';
 
 export class Level extends Object3D {
-	constructor(models, player) {
+	constructor(models, textures, player) {
 		super();
 
 		this.player = player;
 		this._plant = models.plant;
-		this._size = 10;
+		this._dirtTexture = textures.dirt;
+		this._size = 14;
 		this.random = new Random(Math.random());
 		this.food = [];
 
@@ -31,10 +32,9 @@ export class Level extends Object3D {
 
 	addCamera() {
 		this.camera = new PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-		//this.camera.position.setY(1)
-		this.camera.position.setX(4);
-		this.camera.position.setY(20);
-		this.camera.position.setZ(20);
+		this.camera.position.setX(6);
+		this.camera.position.setY(17);
+		this.camera.position.setZ(21);
 
 		this.camera.lookAt(new Vector3(0, 0, 0));
 	}
@@ -43,15 +43,15 @@ export class Level extends Object3D {
 		var tailPos = this.player.getTailPosition();
 		for (var i = 0; i < this.food.length; i++) {
 			var plant = this.food[i];
-			if(plant.position.distanceTo(tailPos) < 1) {
-				this.food.splice(i, 1);
-				this.remove(plant);
+			if (plant.scale.x < 0) this.food.splice(i, 1);
+			if (plant.position.distanceTo(tailPos) < 1) {
+				plant.kill();
 				this.player.addPart();
 			}
 			plant.update(dt);
 		}
 
-		if (this.food.length < 5) {
+		if (this.food.length < 10) {
 			this.addFood();
 		}
 	}
@@ -68,7 +68,8 @@ export class Level extends Object3D {
 
 	buildPlane() {
 		var material = new MeshBasicMaterial({
-			color: 0x7D4F14
+			color: 0xffffff,
+			map: this._dirtTexture
 		});
 		var geometry = new PlaneGeometry(this._size * 2, this._size * 2, 1, 1);
 		var mesh = new Mesh(geometry, material);
