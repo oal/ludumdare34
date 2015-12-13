@@ -11,11 +11,12 @@ import {Random} from './random';
 import {Food} from './food';
 
 export class Level extends Object3D {
-	constructor(models, textures, player) {
+	constructor(models, textures, sounds, player) {
 		super();
 
 		this.player = player;
 		this._plant = models.plant;
+		this._growSound = sounds.grow;
 		this._dirtTexture = textures.dirt;
 		this._size = 14;
 		this.random = new Random(Math.random());
@@ -51,7 +52,7 @@ export class Level extends Object3D {
 			plant.update(dt);
 		}
 
-		if (this.food.length < 10) {
+		if (this.food.length < 10 && Math.random() > 0.95) {
 			this.addFood();
 		}
 	}
@@ -64,6 +65,7 @@ export class Level extends Object3D {
 		);
 		this.food.push(food);
 		this.add(food);
+		this._growSound.play();
 	}
 
 	buildPlane() {

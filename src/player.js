@@ -10,13 +10,15 @@ import {
 } from 'three';
 
 export class Player extends Object3D {
-	constructor(models, textures) {
+	constructor(models, textures, sounds) {
 		super();
 
 		this._material = new MeshPhongMaterial({
 			color: 0x9C0324
 		});
 
+		this._touchdownSound = sounds.touchdown;
+		this._eatSound = sounds.eat;
 		this._bodyGeometry = models.body;
 		this._targetTexture = textures.target;
 
@@ -59,6 +61,8 @@ export class Player extends Object3D {
 		this.numParts++;
 		this.hunger = 100;
 
+		if(this.numParts > 4) this._eatSound.play();
+
 		this.updateMatrixWorld(true);
 
 		document.getElementById('score').innerHTML = '' + this.numParts;
@@ -99,6 +103,8 @@ export class Player extends Object3D {
 			tmp.rotation.x = -tmp.rotation.x;
 			tmp = tmp.next;
 		}
+
+		this._touchdownSound.play();
 	}
 
 	update(dt, keysPressed) {

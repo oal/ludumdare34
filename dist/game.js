@@ -64,9 +64,10 @@
 
 			_classCallCheck(this, Game);
 
-			new _loader.Loader(['body', 'joint', 'plant'], ['target.png', 'dirt.jpg'], function (models, textures) {
+			new _loader.Loader(['body', 'joint', 'plant'], ['target.png', 'dirt.jpg'], ['grow', 'eat', 'touchdown'], function (models, textures, sounds) {
 				_this.models = models;
 				_this.textures = textures;
+				_this.sounds = sounds;
 				_this.setUp();
 			});
 		}
@@ -88,10 +89,10 @@
 
 				this.clock = new _three.Clock();
 
-				this.player = new _player.Player(this.models, this.textures);
+				this.player = new _player.Player(this.models, this.textures, this.sounds);
 				this.scene.add(this.player);
 
-				this.level = new _level.Level(this.models, this.textures, this.player);
+				this.level = new _level.Level(this.models, this.textures, this.sounds, this.player);
 				this.scene.add(this.level);
 
 				this.skipFrame = true;
@@ -2641,13 +2642,14 @@
 	var Level = exports.Level = (function (_Object3D) {
 		_inherits(Level, _Object3D);
 
-		function Level(models, textures, player) {
+		function Level(models, textures, sounds, player) {
 			_classCallCheck(this, Level);
 
 			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Level).call(this));
 
 			_this.player = player;
 			_this._plant = models.plant;
+			_this._growSound = sounds.grow;
 			_this._dirtTexture = textures.dirt;
 			_this._size = 14;
 			_this.random = new _random.Random(Math.random());
@@ -2687,7 +2689,7 @@
 					plant.update(dt);
 				}
 
-				if (this.food.length < 10) {
+				if (this.food.length < 10 && Math.random() > 0.95) {
 					this.addFood();
 				}
 			}
@@ -2697,6 +2699,7 @@
 				var food = new _food.Food(this._plant, this.random.inRange(-this._size + 2, this._size - 2), this.random.inRange(-this._size + 2, this._size - 2));
 				this.food.push(food);
 				this.add(food);
+				this._growSound.play();
 			}
 		}, {
 			key: 'buildPlane',
@@ -2870,7 +2873,7 @@
 	var Player = exports.Player = (function (_Object3D) {
 		_inherits(Player, _Object3D);
 
-		function Player(models, textures) {
+		function Player(models, textures, sounds) {
 			_classCallCheck(this, Player);
 
 			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Player).call(this));
@@ -2879,6 +2882,8 @@
 				color: 0x9C0324
 			});
 
+			_this._touchdownSound = sounds.touchdown;
+			_this._eatSound = sounds.eat;
 			_this._bodyGeometry = models.body;
 			_this._targetTexture = textures.target;
 
@@ -2924,6 +2929,8 @@
 				this.numParts++;
 				this.hunger = 100;
 
+				if (this.numParts > 4) this._eatSound.play();
+
 				this.updateMatrixWorld(true);
 
 				document.getElementById('score').innerHTML = '' + this.numParts;
@@ -2966,6 +2973,8 @@
 					tmp.rotation.x = -tmp.rotation.x;
 					tmp = tmp.next;
 				}
+
+				this._touchdownSound.play();
 			}
 		}, {
 			key: 'update',
@@ -3044,13 +3053,14 @@
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 	var Loader = exports.Loader = (function () {
-		function Loader(names, textures, cb) {
+		function Loader(names, textures, sounds, cb) {
 			var _this = this;
 
 			_classCallCheck(this, Loader);
 
 			this.models = {};
 			this.textures = {};
+			this.sounds = {};
 
 			this._cb = cb;
 			this._numLoaded = 0;
@@ -3079,6 +3089,11 @@
 				};
 				g(texture);
 			}
+
+			for (i = 0; i < sounds.length; i++) {
+				var sound = sounds[i];
+				this.sounds[sound] = new Audio('sound/' + sound + '.wav');
+			}
 		}
 
 		_createClass(Loader, [{
@@ -3087,7 +3102,7 @@
 				this._numLoaded++;
 				if (this._numLoaded === this._totalFiles) {
 					console.log('done');
-					this._cb(this.models, this.textures);
+					this._cb(this.models, this.textures, this.sounds);
 				}
 			}
 		}]);

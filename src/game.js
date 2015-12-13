@@ -7,11 +7,16 @@ import {Loader} from './loader';
 
 class Game {
 	constructor() {
-		new Loader(['body', 'joint', 'plant'], ['target.png', 'dirt.jpg'], (models, textures) => {
-			this.models = models;
-			this.textures = textures;
-			this.setUp();
-		});
+		new Loader(
+			['body', 'joint', 'plant'],
+			['target.png', 'dirt.jpg'],
+			['grow', 'eat', 'touchdown'],
+			(models, textures, sounds) => {
+				this.models = models;
+				this.textures = textures;
+				this.sounds = sounds;
+				this.setUp();
+			});
 
 	}
 
@@ -31,10 +36,10 @@ class Game {
 
 		this.clock = new Clock();
 
-		this.player = new Player(this.models, this.textures);
+		this.player = new Player(this.models, this.textures, this.sounds);
 		this.scene.add(this.player);
 
-		this.level = new Level(this.models, this.textures, this.player);
+		this.level = new Level(this.models, this.textures, this.sounds, this.player);
 		this.scene.add(this.level);
 
 

@@ -1,9 +1,10 @@
 import {BufferGeometryLoader, JSONLoader, TextureLoader} from 'three';
 
 export class Loader {
-	constructor(names, textures, cb) {
+	constructor(names, textures, sounds, cb) {
 		this.models = {};
 		this.textures = {};
+		this.sounds = {};
 
 
 		this._cb = cb;
@@ -33,15 +34,20 @@ export class Loader {
 				})
 			};
 			g(texture);
-
 		}
+
+		for (i = 0; i < sounds.length; i++) {
+			var sound = sounds[i];
+			this.sounds[sound] = new Audio(`sound/${sound}.wav`);
+		}
+
 	}
 
 	_incCounter() {
 		this._numLoaded++;
 		if (this._numLoaded === this._totalFiles) {
 			console.log('done')
-			this._cb(this.models, this.textures);
+			this._cb(this.models, this.textures, this.sounds);
 		}
 	}
 }
