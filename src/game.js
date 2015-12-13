@@ -3,12 +3,16 @@
 import {Scene, WebGLRenderer, Clock, Fog, DirectionalLight, AmbientLight} from 'three';
 import {Level} from './level';
 import {Player} from './player';
+import {Loader} from './loader';
 
 class Game {
 	constructor() {
-		this.setUp();
-		this.isPaused = true;
-		this.start();
+		new Loader(['body', 'joint', 'plant'], ['target'], (models, textures) => {
+			this.models = models;
+			this.textures = textures;
+			this.setUp();
+		});
+
 	}
 
 	setUp() {
@@ -21,22 +25,25 @@ class Game {
 
 
 		this.renderer = new WebGLRenderer();
-		this.renderer.setClearColor(skyColor);
+		this.renderer.setClearColor(0x37BF0A);
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		document.body.appendChild(this.renderer.domElement);
 
 		this.clock = new Clock();
 
-		this.level = new Level();
+		this.player = new Player(this.models, this.textures);
+		this.scene.add(this.player);
+
+		this.level = new Level(this.models, this.player);
 		this.scene.add(this.level);
 
-		this.player = new Player(this.level);
-
-		this.scene.add(this.player);
 
 		this.skipFrame = true;
 
 		this.setUpControls();
+
+		this.isPaused = true;
+		this.start();
 	}
 
 	setUpLights() {
@@ -78,14 +85,22 @@ class Game {
 		}
 	}
 
-	update() {
-		if (this.isPaused) return;
+	gameOver() {
+		this.isPaused = true;
+		var tweet = encodeURIComponent(`I got a Crazy Slinky Snake score of ${this.player.numParts}! How much can you eat? #LDJAM http://static.olav.it/LD34/ via @lindekleiv`);
+		document.getElementById('tweet').href = 'https://twitter.com/intent/tweet?text=' + tweet;
+		document.getElementById('gameover').style.display = 'block';
+	}
 
+	update() {
 		var dt = this.clock.getDelta();
+		if (this.isPaused) return;
+		if (this.player.hunger <= 0) this.gameOver();
+
 		this.level.update(dt);
 		this.player.update(dt, this.keysPressed);
 		this.render();
-		requestAnimationFrame(this.update.bind(this));
+		requestAnimationFrame(_ => this.update(this));
 	}
 
 	render() {
@@ -93,4 +108,8 @@ class Game {
 	}
 }
 
-new Game();
+
+document.getElementById('start').onclick = function () {
+	new Game();
+	document.getElementById('intro').style.display = 'none';
+};

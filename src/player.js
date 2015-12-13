@@ -1,16 +1,24 @@
-import {Object3D, Mesh, BoxGeometry, SphereGeometry, MeshPhongMaterial, Vector3} from 'three';
+import {
+	Object3D,
+	Mesh,
+	PlaneGeometry,
+	BoxGeometry,
+	SphereGeometry,
+	MeshPhongMaterial,
+	MeshBasicMaterial,
+	Vector3
+} from 'three';
 
 export class Player extends Object3D {
-	constructor(level) {
+	constructor(models, textures) {
 		super();
 
-		this.level = level;
-
 		this._material = new MeshPhongMaterial({
-			color: 0x1E9C08
+			color: 0x9C0324
 		});
-		this._sphere = new SphereGeometry(0.45, 8, 3);
 
+		this._bodyGeometry = models.body;
+		this._targetTexture = textures.target;
 
 		this.bridgeMode = 0;
 		this.head = null;
@@ -21,22 +29,21 @@ export class Player extends Object3D {
 		this.addPart();
 		this.addPart();
 
-		this.updateMatrixWorld(true);
+		this.addTarget();
 
 		this.curl = 0;
 		this.angle = 0;
+
+		this.hungerStr = '100';
+		this.hunger = 100.0;
+	}
+
+	getTailPosition() {
+		return this.tail.localToWorld(new Vector3(0, 1, 0));
 	}
 
 	addPart() {
-		var geom = new BoxGeometry(0.5, 1, 0.5);
-		for (var i = 0; i < geom.vertices.length; i++) {
-			var vertex = geom.vertices[i];
-			vertex.y += 0.5;
-		}
-		if (this.head !== null) {
-			geom.merge(this._sphere);
-		}
-		var mesh = new Mesh(geom, this._material);
+		var mesh = new Mesh(this._bodyGeometry, this._material);
 
 		if (this.head === null) {
 			this.head = mesh;
@@ -48,14 +55,31 @@ export class Player extends Object3D {
 			mesh.position.y = 1;
 		}
 		this.tail = mesh;
+
 		this.numParts++;
+		this.hunger = 100;
 
+		this.updateMatrixWorld(true);
+
+		document.getElementById('score').innerHTML = '' + this.numParts;
 	}
 
-	changeVelocity(delta) {
-		this.velocity += delta;
+	addTarget() {
+		var geom = new PlaneGeometry(1, 1, 1);
+		//for(var i = 0; i < geom.vertices.length; i++) {
+		//	geom.vertices[i].x += 0.5;
+		//	geom.vertices[i].z += 0.5;
+		//}
+		var material = new MeshBasicMaterial({
+			map: this._targetTexture,
+			transparent: true
+		});
+		var mesh = new Mesh(geom, material);
+		mesh.position.y = 0.01;
+		mesh.rotation.x = -Math.PI / 2;
+		this.head.add(mesh);
+		this.target = mesh;
 	}
-
 
 	updateCurl(dt) {
 		var tmp = this.head.next;
@@ -70,14 +94,13 @@ export class Player extends Object3D {
 			tmp = tmp.next;
 			delta = delta * 0.9;
 		}
-		this.curl *= 0.9
+		this.curl *= 0.95
 	}
 
 	flipCurls() {
 		var tmp = this.head.next;
 		while (tmp) {
 			tmp.rotation.x = -tmp.rotation.x;
-			console.log(tmp.rotation.x)
 			tmp = tmp.next;
 		}
 	}
@@ -101,8 +124,12 @@ export class Player extends Object3D {
 			}
 		}
 
+		if (keysPressed.indexOf(38) === -1 && keysPressed.indexOf(40) === -1) {
+			this.curl += (Math.PI - this.curl) * (Math.random() - 0.5) * dt;
+		}
+
 		var tailPos = this.tail.localToWorld(new Vector3(0, 0, 0));
-		if (tailPos.y === 1 && this.bridgeMode === 0) {
+		if (tailPos.y < 1.05 && this.bridgeMode === 0) {
 			this.head.position.set(tailPos.x, 0, tailPos.z);
 
 			//this.head.rotation.y += Math.PI;
@@ -116,5 +143,17 @@ export class Player extends Object3D {
 		this.updateCurl(dt);
 		this.head.rotation.y += this.angle * dt;
 		this.angle *= 0.9;
+
+		this.hunger -= (dt * this.numParts * 0.7);
+		var newHungerStr = '' + parseInt(this.hunger);
+		if (newHungerStr !== this.hungerStr) {
+			this.hungerStr = newHungerStr;
+			document.getElementById('hunger').innerHTML = newHungerStr;
+		}
+
+		//
+		//var ltw = this.tail.localToWorld(new Vector3(0,0,0));
+		//var wtl = this.worldToLocal(ltw);
+		//this.target.position.setZ(-wtl.z);
 	}
 }

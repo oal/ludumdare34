@@ -11,9 +11,11 @@ import {Random} from './random';
 import {Food} from './food';
 
 export class Level extends Object3D {
-	constructor() {
+	constructor(models, player) {
 		super();
 
+		this.player = player;
+		this._plant = models.plant;
 		this._size = 10;
 		this.random = new Random(Math.random());
 		this.food = [];
@@ -38,9 +40,15 @@ export class Level extends Object3D {
 	}
 
 	update(dt) {
+		var tailPos = this.player.getTailPosition();
 		for (var i = 0; i < this.food.length; i++) {
-			var obj = this.food[i];
-			obj.update(dt);
+			var plant = this.food[i];
+			if(plant.position.distanceTo(tailPos) < 1) {
+				this.food.splice(i, 1);
+				this.remove(plant);
+				this.player.addPart();
+			}
+			plant.update(dt);
 		}
 
 		if (this.food.length < 5) {
@@ -50,6 +58,7 @@ export class Level extends Object3D {
 
 	addFood() {
 		var food = new Food(
+			this._plant,
 			this.random.inRange(-this._size + 2, this._size - 2),
 			this.random.inRange(-this._size + 2, this._size - 2)
 		);

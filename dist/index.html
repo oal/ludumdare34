@@ -4,14 +4,127 @@
     <meta charset="UTF-8">
     <title>LudumDare 34</title>
     <style>
+        html {
+            height: 100%;
+        }
+
         body {
             margin: 0;
             padding: 0;
+            font-family: Arial, sans-serif;
+            height: 100%;
+            background-color: #30B82B;
+            font-weight: bold;
+            overflow: hidden;
+        }
+
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            background-color: #fff;
+        }
+
+        #ui span {
+            padding: 0 25px;
+        }
+
+        #intro, #gameover {
+            text-align: center;
+            padding: 340px 50px 0 50px;
+            background: url('images/title.jpg') no-repeat center 100px;
+            -webkit-background-size: contain;
+            background-size: contain;
+            height: 100%;
+            text-shadow: 0 0 10px #fff;
+        }
+
+        #gameover {
+            display: none;
+        }
+
+        .btn {
+            font-size: 150%;
+            padding: 15px 30px;
+            border-radius: 4px;
+            border: 2px solid #000;
+            background-color: #fff;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.5);
+            color: #000;
+            text-decoration: none;
+            text-shadow: 0 0 10px #fff;
+        }
+
+        .btn:hover {
+            background-color: #000;
+            color: #fff;
+            border-color: #fff;
+        }
+
+        hr {
+            border-top: 2px solid rgba(0, 0, 0, 0.75);
+            background: rgba(0, 0, 0, 0.5);
+            height: 2px;
+            border-bottom: 2px solid rgba(0, 0, 0, 0.25);
+            margin: 20px 0;
+            opacity: 0.5;
+        }
+
+        a {
+            display: inline-block;
         }
     </style>
 </head>
 <body>
 
+<div id="ui">
+    <span>Hunger: <strong id="hunger">100</strong></span>
+    <span>High score: <strong id="score">0</strong></span>
+</div>
+
+<div id="intro">
+    <p>
+        Your name is Crazy Slinky Snake, and you love to eat.
+        So much so that your appetite will eventually kill you.
+    </p>
+
+    <p>
+        Control the snake with the arrow keys, and try to hit plants
+        with either end of the snake to eat them.
+    </p>
+
+    <hr/>
+
+    <button id="start" class="btn">Start game</button>
+
+    <hr/>
+
+    <p>
+    <h4>Music?</h4>
+    <audio controls loop>
+        <source src="sound/music.ogg" type="audio/ogg">
+        Your browser does not support the audio element.
+    </audio>
+    </p>
+</div>
+
+<div id="gameover">
+    <h1>Game over!</h1>
+
+    <p>
+        Share your score on Twitter.
+    </p>
+    <hr/>
+    <a class="btn" id="tweet" href="https://twitter.com/intent/tweet?text=" target="_blank">Tweet my score</a>
+    <hr/>
+    <p>
+        <button class="btn" onclick="location.reload()">Retry!</button>
+    </p>
+</div>
 
 <script src="game.js"></script>
 </body>

@@ -1,12 +1,11 @@
 import {Mesh, SphereGeometry, MeshPhongMaterial, Vector3} from 'three';
 
 export class Food extends Mesh {
-	constructor(x, z) {
-		var geometry = new SphereGeometry(0.5, 8, 4);
+	constructor(plant, x, z) {
 		var material = new MeshPhongMaterial({
-			color: 0xaa0000
+			color: 0x1E9C08
 		});
-		super(geometry, material);
+		super(plant, material);
 
 		this.position.x = x;
 		this.position.y = 0;

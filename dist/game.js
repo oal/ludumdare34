@@ -52,17 +52,23 @@
 
 	var _level = __webpack_require__(2);
 
-	var _player = __webpack_require__(4);
+	var _player = __webpack_require__(5);
+
+	var _loader = __webpack_require__(6);
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 	var Game = (function () {
 		function Game() {
+			var _this = this;
+
 			_classCallCheck(this, Game);
 
-			this.setUp();
-			this.isPaused = true;
-			this.start();
+			new _loader.Loader(['body', 'joint', 'plant'], ['target'], function (models, textures) {
+				_this.models = models;
+				_this.textures = textures;
+				_this.setUp();
+			});
 		}
 
 		_createClass(Game, [{
@@ -76,22 +82,24 @@
 				this.scene.fog = fog;
 
 				this.renderer = new _three.WebGLRenderer();
-				this.renderer.setClearColor(skyColor);
+				this.renderer.setClearColor(0x37BF0A);
 				this.renderer.setSize(window.innerWidth, window.innerHeight);
 				document.body.appendChild(this.renderer.domElement);
 
 				this.clock = new _three.Clock();
 
-				this.level = new _level.Level();
-				this.scene.add(this.level);
-
-				this.player = new _player.Player(this.level);
-
+				this.player = new _player.Player(this.models, this.textures);
 				this.scene.add(this.player);
+
+				this.level = new _level.Level(this.models, this.player);
+				this.scene.add(this.level);
 
 				this.skipFrame = true;
 
 				this.setUpControls();
+
+				this.isPaused = true;
+				this.start();
 			}
 		}, {
 			key: 'setUpLights',
@@ -106,19 +114,19 @@
 		}, {
 			key: 'setUpControls',
 			value: function setUpControls() {
-				var _this = this;
+				var _this2 = this;
 
 				this.keysPressed = [];
 				document.addEventListener('keydown', function (e) {
 					e.preventDefault();
-					if (_this.keysPressed.indexOf(e.keyCode) != -1) return;
-					_this.keysPressed.push(e.keyCode);
+					if (_this2.keysPressed.indexOf(e.keyCode) != -1) return;
+					_this2.keysPressed.push(e.keyCode);
 				});
 				document.addEventListener('keyup', function (e) {
 					e.preventDefault();
-					var keyIndex = _this.keysPressed.indexOf(e.keyCode);
+					var keyIndex = _this2.keysPressed.indexOf(e.keyCode);
 					if (keyIndex == -1) return;
-					_this.keysPressed.splice(keyIndex, 1);
+					_this2.keysPressed.splice(keyIndex, 1);
 				});
 			}
 		}, {
@@ -139,15 +147,28 @@
 				}
 			}
 		}, {
+			key: 'gameOver',
+			value: function gameOver() {
+				this.isPaused = true;
+				var tweet = encodeURIComponent('I got a Crazy Slinky Snake score of ' + this.player.numParts + '! How much can you eat? #LDJAM http://static.olav.it/LD34/ via @lindekleiv');
+				document.getElementById('tweet').href = 'https://twitter.com/intent/tweet?text=' + tweet;
+				document.getElementById('gameover').style.display = 'block';
+			}
+		}, {
 			key: 'update',
 			value: function update() {
-				if (this.isPaused) return;
+				var _this3 = this;
 
 				var dt = this.clock.getDelta();
+				if (this.isPaused) return;
+				if (this.player.hunger <= 0) this.gameOver();
+
 				this.level.update(dt);
 				this.player.update(dt, this.keysPressed);
 				this.render();
-				requestAnimationFrame(this.update.bind(this));
+				requestAnimationFrame(function (_) {
+					return _this3.update(_this3);
+				});
 			}
 		}, {
 			key: 'render',
@@ -159,7 +180,10 @@
 		return Game;
 	})();
 
-	new Game();
+	document.getElementById('start').onclick = function () {
+		new Game();
+		document.getElementById('intro').style.display = 'none';
+	};
 
 /***/ },
 /* 1 */
@@ -2605,7 +2629,7 @@
 
 	var _random = __webpack_require__(3);
 
-	var _food = __webpack_require__(5);
+	var _food = __webpack_require__(4);
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -2616,11 +2640,13 @@
 	var Level = exports.Level = (function (_Object3D) {
 		_inherits(Level, _Object3D);
 
-		function Level() {
+		function Level(models, player) {
 			_classCallCheck(this, Level);
 
 			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Level).call(this));
 
+			_this.player = player;
+			_this._plant = models.plant;
 			_this._size = 10;
 			_this.random = new _random.Random(Math.random());
 			_this.food = [];
@@ -2649,9 +2675,15 @@
 		}, {
 			key: 'update',
 			value: function update(dt) {
+				var tailPos = this.player.getTailPosition();
 				for (var i = 0; i < this.food.length; i++) {
-					var obj = this.food[i];
-					obj.update(dt);
+					var plant = this.food[i];
+					if (plant.position.distanceTo(tailPos) < 1) {
+						this.food.splice(i, 1);
+						this.remove(plant);
+						this.player.addPart();
+					}
+					plant.update(dt);
 				}
 
 				if (this.food.length < 5) {
@@ -2661,7 +2693,7 @@
 		}, {
 			key: 'addFood',
 			value: function addFood() {
-				var food = new _food.Food(this.random.inRange(-this._size + 2, this._size - 2), this.random.inRange(-this._size + 2, this._size - 2));
+				var food = new _food.Food(this._plant, this.random.inRange(-this._size + 2, this._size - 2), this.random.inRange(-this._size + 2, this._size - 2));
 				this.food.push(food);
 				this.add(food);
 			}
@@ -2752,6 +2784,56 @@
 	Object.defineProperty(exports, "__esModule", {
 		value: true
 	});
+	exports.Food = undefined;
+
+	var _three = __webpack_require__(1);
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var Food = exports.Food = (function (_Mesh) {
+		_inherits(Food, _Mesh);
+
+		function Food(plant, x, z) {
+			_classCallCheck(this, Food);
+
+			var material = new _three.MeshPhongMaterial({
+				color: 0x1E9C08
+			});
+
+			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Food).call(this, plant, material));
+
+			_this.position.x = x;
+			_this.position.y = 0;
+			_this.position.z = z;
+
+			_this.velocity = -0.11;
+
+			return _this;
+		}
+
+		_createClass(Food, [{
+			key: 'update',
+			value: function update(dt) {}
+		}]);
+
+		return Food;
+	})(_three.Mesh);
+
+/***/ },
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
 	exports.Player = undefined;
 
 	var _three = __webpack_require__(1);
@@ -2765,17 +2847,17 @@
 	var Player = exports.Player = (function (_Object3D) {
 		_inherits(Player, _Object3D);
 
-		function Player(level) {
+		function Player(models, textures) {
 			_classCallCheck(this, Player);
 
 			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Player).call(this));
 
-			_this.level = level;
-
 			_this._material = new _three.MeshPhongMaterial({
-				color: 0x1E9C08
+				color: 0x9C0324
 			});
-			_this._sphere = new _three.SphereGeometry(0.45, 8, 3);
+
+			_this._bodyGeometry = models.body;
+			_this._targetTexture = textures.target;
 
 			_this.bridgeMode = 0;
 			_this.head = null;
@@ -2786,25 +2868,25 @@
 			_this.addPart();
 			_this.addPart();
 
-			_this.updateMatrixWorld(true);
+			_this.addTarget();
 
 			_this.curl = 0;
 			_this.angle = 0;
+
+			_this.hungerStr = '100';
+			_this.hunger = 100.0;
 			return _this;
 		}
 
 		_createClass(Player, [{
+			key: 'getTailPosition',
+			value: function getTailPosition() {
+				return this.tail.localToWorld(new _three.Vector3(0, 1, 0));
+			}
+		}, {
 			key: 'addPart',
 			value: function addPart() {
-				var geom = new _three.BoxGeometry(0.5, 1, 0.5);
-				for (var i = 0; i < geom.vertices.length; i++) {
-					var vertex = geom.vertices[i];
-					vertex.y += 0.5;
-				}
-				if (this.head !== null) {
-					geom.merge(this._sphere);
-				}
-				var mesh = new _three.Mesh(geom, this._material);
+				var mesh = new _three.Mesh(this._bodyGeometry, this._material);
 
 				if (this.head === null) {
 					this.head = mesh;
@@ -2815,12 +2897,31 @@
 					mesh.position.y = 1;
 				}
 				this.tail = mesh;
+
 				this.numParts++;
+				this.hunger = 100;
+
+				this.updateMatrixWorld(true);
+
+				document.getElementById('score').innerHTML = '' + this.numParts;
 			}
 		}, {
-			key: 'changeVelocity',
-			value: function changeVelocity(delta) {
-				this.velocity += delta;
+			key: 'addTarget',
+			value: function addTarget() {
+				var geom = new _three.PlaneGeometry(1, 1, 1);
+				//for(var i = 0; i < geom.vertices.length; i++) {
+				//	geom.vertices[i].x += 0.5;
+				//	geom.vertices[i].z += 0.5;
+				//}
+				var material = new _three.MeshBasicMaterial({
+					map: this._targetTexture,
+					transparent: true
+				});
+				var mesh = new _three.Mesh(geom, material);
+				mesh.position.y = 0.01;
+				mesh.rotation.x = -Math.PI / 2;
+				this.head.add(mesh);
+				this.target = mesh;
 			}
 		}, {
 			key: 'updateCurl',
@@ -2836,7 +2937,7 @@
 					tmp = tmp.next;
 					delta = delta * 0.9;
 				}
-				this.curl *= 0.9;
+				this.curl *= 0.95;
 			}
 		}, {
 			key: 'flipCurls',
@@ -2844,7 +2945,6 @@
 				var tmp = this.head.next;
 				while (tmp) {
 					tmp.rotation.x = -tmp.rotation.x;
-					console.log(tmp.rotation.x);
 					tmp = tmp.next;
 				}
 			}
@@ -2869,8 +2969,12 @@
 					}
 				}
 
+				if (keysPressed.indexOf(38) === -1 && keysPressed.indexOf(40) === -1) {
+					this.curl += (Math.PI - this.curl) * (Math.random() - 0.5) * dt;
+				}
+
 				var tailPos = this.tail.localToWorld(new _three.Vector3(0, 0, 0));
-				if (tailPos.y === 1 && this.bridgeMode === 0) {
+				if (tailPos.y < 1.05 && this.bridgeMode === 0) {
 					this.head.position.set(tailPos.x, 0, tailPos.z);
 
 					//this.head.rotation.y += Math.PI;
@@ -2883,6 +2987,18 @@
 				this.updateCurl(dt);
 				this.head.rotation.y += this.angle * dt;
 				this.angle *= 0.9;
+
+				this.hunger -= dt * this.numParts * 0.7;
+				var newHungerStr = '' + parseInt(this.hunger);
+				if (newHungerStr !== this.hungerStr) {
+					this.hungerStr = newHungerStr;
+					document.getElementById('hunger').innerHTML = newHungerStr;
+				}
+
+				//
+				//var ltw = this.tail.localToWorld(new Vector3(0,0,0));
+				//var wtl = this.worldToLocal(ltw);
+				//this.target.position.setZ(-wtl.z);
 			}
 		}]);
 
@@ -2890,7 +3006,7 @@
 	})(_three.Object3D);
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -2900,45 +3016,63 @@
 	Object.defineProperty(exports, "__esModule", {
 		value: true
 	});
-	exports.Food = undefined;
+	exports.Loader = undefined;
 
 	var _three = __webpack_require__(1);
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	var Loader = exports.Loader = (function () {
+		function Loader(names, textures, cb) {
+			var _this = this;
 
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+			_classCallCheck(this, Loader);
 
-	var Food = exports.Food = (function (_Mesh) {
-		_inherits(Food, _Mesh);
+			this.models = {};
+			this.textures = {};
 
-		function Food(x, z) {
-			_classCallCheck(this, Food);
+			this._cb = cb;
+			this._numLoaded = 0;
+			this._totalFiles = names.length + textures.length;
 
-			var geometry = new _three.SphereGeometry(0.5, 8, 4);
-			var material = new _three.MeshPhongMaterial({
-				color: 0xaa0000
-			});
+			var loader = new _three.JSONLoader();
+			for (var i = 0; i < names.length; i++) {
+				var name = names[i];
+				var f = function f(n) {
+					loader.load('models/' + n + '.json', function (geometry) {
+						_this.models[n] = geometry;
+						_this._incCounter();
+					});
+				};
+				f(name);
+			}
 
-			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Food).call(this, geometry, material));
-
-			_this.position.x = x;
-			_this.position.y = 0;
-			_this.position.z = z;
-
-			_this.velocity = -0.11;
-
-			return _this;
+			var textureLoader = new _three.TextureLoader();
+			for (i = 0; i < textures.length; i++) {
+				var texture = textures[i];
+				var g = function g(n) {
+					textureLoader.load('images/' + n + '.png', function (tex) {
+						_this.textures[n] = tex;
+						_this._incCounter();
+					});
+				};
+				g(texture);
+			}
 		}
 
-		_createClass(Food, [{
-			key: 'update',
-			value: function update(dt) {}
+		_createClass(Loader, [{
+			key: '_incCounter',
+			value: function _incCounter() {
+				this._numLoaded++;
+				if (this._numLoaded === this._totalFiles) {
+					console.log('done');
+					this._cb(this.models, this.textures);
+				}
+			}
 		}]);
 
-		return Food;
-	})(_three.Mesh);
+		return Loader;
+	})();
 
 /***/ }
 /******/ ]);
