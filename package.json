@@ -1,0 +1,31 @@
+{
+  "name": "ludumdare34",
+  "version": "1.0.0",
+  "description": "My LudumDare 34 entry",
+  "main": "webpack.config.js",
+  "dependencies": {
+    "babel": "^6.3.13",
+    "babel-core": "^6.3.17",
+    "babel-loader": "^6.2.0",
+    "babel-preset-es2015": "^6.3.13",
+    "webpack": "^1.12.9",
+    "three": "^0.73.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oal/ludumdare34.git"
+  },
+  "keywords": [
+    "LDJAM"
+  ],
+  "author": "Olav Lindekleiv",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/oal/ludumdare34/issues"
+  },
+  "homepage": "https://github.com/oal/ludumdare34#readme"
+}
